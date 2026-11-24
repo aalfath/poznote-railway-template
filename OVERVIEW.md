@@ -4,7 +4,7 @@ Poznote is an open-source (MIT) note-taking web app. It keeps rich-text, Markdow
 
 ## About Hosting Poznote
 
-This template runs Poznote 6.158.2 from the official image as a single service. nginx, PHP-FPM and Poznote's background workers run in that one container, and a Railway volume at `/var/www/html/data` holds the SQLite databases, notes, attachments and backups, so your data survives redeploys and restarts. Upstream ships a default admin (`admin_change_me` / `admin`). On the first boot, this template renames it to `admin` and gives it a generated password before the web server accepts any request, so the public URL is never open. PHP workers and the PHP memory limit are sized from the service's memory, so it runs on 0.5 GB.
+This template runs Poznote 6.158.2 from the official image as a single service. nginx, PHP-FPM and Poznote's background workers run in that one container, and a Railway volume at `/var/www/html/data` holds the SQLite databases, notes, attachments and backups, so your data survives redeploys and restarts. Upstream ships a default admin (`admin_change_me` / `admin`). On the first boot, this template renames it to `admin` and gives it a generated password before the web server accepts any request, so the public URL is never open. PHP and nginx workers are sized from the service's memory and CPU limits, so it runs on 0.5 GB.
 
 ## Common Use Cases
 

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Railway start script for Poznote.
 #  1. Listen on Railway's PORT.
-#  2. Size php-fpm workers and the PHP memory limit to the service's memory.
+#  2. Size php-fpm workers, the PHP memory limit and nginx workers to the
+#     service's memory and CPU limits (Railway hosts show 48 CPUs).
 #  3. Run upstream's init script (data folders, permissions, service token).
 #  4. On the first boot only, replace upstream's default admin
 #     (admin_change_me / admin) with POZNOTE_ADMIN_USERNAME and
@@ -36,6 +37,23 @@ if [ -n "$mem_mb" ] && [ "$mem_mb" -gt 0 ]; then
     fi
     echo "railway: ${mem_mb} MB memory, php-fpm max_children=${POZNOTE_PHP_FPM_MAX_CHILDREN:-default}, memory_limit=${POZNOTE_PHP_MEMORY_LIMIT:-default}M"
 fi
+
+# nginx's "worker_processes auto" starts one worker per host CPU (48 on
+# Railway hosts, whatever the service's limit). Use the cgroup CPU quota.
+cpus=""
+if [ -r /sys/fs/cgroup/cpu.max ]; then
+    read -r quota period < /sys/fs/cgroup/cpu.max || true
+    if [ "${quota:-max}" != "max" ] && [ "${period:-0}" -gt 0 ]; then
+        cpus=$(( (quota + period - 1) / period ))
+    fi
+fi
+[ -z "$cpus" ] && cpus="$(nproc 2>/dev/null || echo 2)"
+[ "$cpus" -lt 1 ] && cpus=1
+[ "$cpus" -gt 4 ] && cpus=4
+NGINX_WORKERS="${POZNOTE_NGINX_WORKERS:-$cpus}"
+sed -i "s/^worker_processes .*;/worker_processes ${NGINX_WORKERS};/" /etc/nginx/nginx.conf
+grep -q "^worker_processes ${NGINX_WORKERS};" /etc/nginx/nginx.conf || { echo "ERROR: could not set nginx worker_processes" >&2; exit 1; }
+echo "railway: nginx worker_processes=${NGINX_WORKERS}"
 
 /usr/local/bin/init.sh
 

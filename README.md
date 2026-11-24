@@ -6,7 +6,7 @@ Poznote is an open-source (MIT) note-taking web app. It keeps rich-text, Markdow
 
 ## About Hosting Poznote
 
-This template runs Poznote 6.158.2 from the official image as a single service. nginx, PHP-FPM and Poznote's background workers run in that one container, and a Railway volume at `/var/www/html/data` holds the SQLite databases, notes, attachments and backups, so your data survives redeploys and restarts. Upstream ships a default admin (`admin_change_me` / `admin`). On the first boot, this template renames it to `admin` and gives it a generated password before the web server accepts any request, so the public URL is never open. PHP workers and the PHP memory limit are sized from the service's memory, so it runs on 0.5 GB.
+This template runs Poznote 6.158.2 from the official image as a single service. nginx, PHP-FPM and Poznote's background workers run in that one container, and a Railway volume at `/var/www/html/data` holds the SQLite databases, notes, attachments and backups, so your data survives redeploys and restarts. Upstream ships a default admin (`admin_change_me` / `admin`). On the first boot, this template renames it to `admin` and gives it a generated password before the web server accepts any request, so the public URL is never open. PHP and nginx workers are sized from the service's memory and CPU limits, so it runs on 0.5 GB.
 
 ## Common Use Cases
 
@@ -58,12 +58,12 @@ By deploying Poznote on Railway, you are one step closer to supporting a complet
 | `POZNOTE_ADMIN_USERNAME` | `admin` | Name of the admin account created on the first boot |
 | `POZNOTE_ADMIN_PASSWORD` | generated (`${{secret(24,...)}}`) | Password of that admin account, set on the first boot only |
 
-Optional, read at every start: `POZNOTE_PHP_FPM_MAX_CHILDREN` and `POZNOTE_PHP_MEMORY_LIMIT` (by default sized from the service's memory), plus any setting from upstream's [`.env.template`](https://github.com/timothepoznanski/Poznote/blob/6.158.2/.env.template) such as `POZNOTE_OIDC_CLIENT_ID`.
+Optional, read at every start: `POZNOTE_PHP_FPM_MAX_CHILDREN`, `POZNOTE_PHP_MEMORY_LIMIT` and `POZNOTE_NGINX_WORKERS` (by default sized from the service's limits), plus any setting from upstream's [`.env.template`](https://github.com/timothepoznanski/Poznote/blob/6.158.2/.env.template) such as `POZNOTE_OIDC_CLIENT_ID`.
 
 ## Repo layout
 
 * `Dockerfile`: `FROM ghcr.io/timothepoznanski/poznote:6.158.2@sha256:a3dbe757…`, plus the two wrapper files
-* `railway-start.sh`: listens on `PORT`, sizes PHP to the memory limit, runs upstream's init, creates the admin on the first boot, runs supervisord, and exits non-zero if nginx or PHP-FPM stops so Railway restarts the service
+* `railway-start.sh`: listens on `PORT`, sizes PHP and nginx workers to the service's memory and CPU limits, runs upstream's init, creates the admin on the first boot, runs supervisord, and exits non-zero if nginx or PHP-FPM stops so Railway restarts the service
 * `railway-bootstrap-admin.php`: replaces the default `admin_change_me` / `admin` account with your generated credentials, once
 
 Upstream Poznote is MIT-licensed by Timothé Poznanski. This wrapper is MIT too.
